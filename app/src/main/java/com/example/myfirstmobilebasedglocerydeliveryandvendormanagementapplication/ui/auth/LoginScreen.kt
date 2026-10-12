@@ -1,6 +1,5 @@
 package com.example.myfirstmobilebasedglocerydeliveryandvendormanagementapplication.ui.auth
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,6 +59,13 @@ fun LoginScreen(
     var password by remember { mutableStateOf("123456") }
     var expanded by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var resetEmail by remember { mutableStateOf("") }
+    var resetNewPassword by remember { mutableStateOf("") }
+    var resetConfirmPassword by remember { mutableStateOf("") }
+    var resetDialogMessage by remember { mutableStateOf<String?>(null) }
+    var isResetSuccess by remember { mutableStateOf(false) }
 
     val authState by authViewModel.authState.collectAsState()
 
@@ -165,8 +174,31 @@ fun LoginScreen(
                 singleLine = true
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = {
+                        resetEmail = email
+                        resetNewPassword = ""
+                        resetConfirmPassword = ""
+                        resetDialogMessage = null
+                        isResetSuccess = false
+                        showForgotPasswordDialog = true
+                    }
+                ) {
+                    Text(
+                        text = "Forgot Password?",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
             if (errorMessage != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
                     modifier = Modifier.fillMaxWidth(),
@@ -182,7 +214,7 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -225,5 +257,109 @@ fun LoginScreen(
         }
 
         DeveloperFooter(modifier = Modifier.align(Alignment.BottomEnd))
+    }
+
+    if (showForgotPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showForgotPasswordDialog = false },
+            title = {
+                Text(
+                    text = "Reset Password",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Enter your registered email and set a new password.",
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = {
+                            resetEmail = it
+                            resetDialogMessage = null
+                        },
+                        label = { Text("Registered Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = resetNewPassword,
+                        onValueChange = {
+                            resetNewPassword = it
+                            resetDialogMessage = null
+                        },
+                        label = { Text("New Password (5-10 digits)") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = resetConfirmPassword,
+                        onValueChange = {
+                            resetConfirmPassword = it
+                            resetDialogMessage = null
+                        },
+                        label = { Text("Confirm New Password") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    if (resetDialogMessage != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = resetDialogMessage!!,
+                            color = if (isResetSuccess) Color(0xFF2E7D32) else Color.Red,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (resetNewPassword != resetConfirmPassword) {
+                            resetDialogMessage = "Passwords do not match."
+                            isResetSuccess = false
+                            return@Button
+                        }
+                        authViewModel.resetPassword(
+                            email = resetEmail,
+                            newPassword = resetNewPassword,
+                            onSuccess = { msg ->
+                                resetDialogMessage = msg
+                                isResetSuccess = true
+                                password = resetNewPassword
+                            },
+                            onError = { err ->
+                                resetDialogMessage = err
+                                isResetSuccess = false
+                            }
+                        )
+                    }
+                ) {
+                    Text("Reset Password")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgotPasswordDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 }

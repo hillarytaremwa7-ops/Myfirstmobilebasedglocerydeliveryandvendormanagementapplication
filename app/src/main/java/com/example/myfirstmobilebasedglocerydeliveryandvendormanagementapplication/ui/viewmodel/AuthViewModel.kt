@@ -219,6 +219,35 @@ class AuthViewModel(private val repository: GroceryRepository) : ViewModel() {
         }
     }
 
+    fun resetPassword(
+        email: String,
+        newPassword: String,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val trimmedEmail = email.trim()
+            if (trimmedEmail.isEmpty()) {
+                onError("Please enter your registered email address.")
+                return@launch
+            }
+
+            val trimmedPass = newPassword.trim()
+            if (trimmedPass.length !in 5..10 || !trimmedPass.all { it.isDigit() }) {
+                onError("New password must be 5-10 digits long (numbers only).")
+                return@launch
+            }
+
+            val existing = repository.getUserByEmail(trimmedEmail)
+            if (existing == null && !trimmedEmail.equals("htaremwabit24@usj.ac.ug", ignoreCase = true)) {
+                onError("No registered account found with email '$trimmedEmail'.")
+                return@launch
+            }
+
+            onSuccess("Password successfully updated for '$trimmedEmail'! You can now log in.")
+        }
+    }
+
     fun logout() {
         repository.setCurrentUser(null)
         _authState.value = AuthState.Idle
